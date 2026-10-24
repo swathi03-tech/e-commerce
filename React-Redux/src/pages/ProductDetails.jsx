@@ -16,33 +16,156 @@ export default function ProductDetails() {
   const products = useSelector((state) => state.products.items);
   const loading = useSelector((state) => state.products.loading);
   const error = useSelector((state) => state.products.error);
-
   const wishlistItems = useSelector((state) => state.wishlist.items);
 
   const product = products.find((item) => String(item.id) === id);
 
   const [selectedImage, setSelectedImage] = useState("");
   const [notice, setNotice] = useState("");
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [requestError, setRequestError] = useState("");
+  const [httpStatus, setHttpStatus] = useState(null);
 
   useEffect(() => {
-    if (products.length === 0) {
+    const controller = new AbortController();
+    let active = true;
+    let loadingTimer;
+
+    const startedAt = Date.now();
+
+    setDetailLoading(true);
+    setRequestError("");
+    setHttpStatus(null);
+
+    async function checkProductRequest() {
+      try {
+        const response = await fetch(
+          `https://dummyjson.com/products/${encodeURIComponent(id)}`,
+          { signal: controller.signal }
+        );
+
+        if (!active) return;
+
+        setHttpStatus(response.status);
+
+        console.info(
+          `[ShopKart] Product API status: ${response.status} ${response.statusText}`
+        );
+
+        if (!response.ok) {
+          console.error(
+            `[ShopKart] HTTP ${response.status}: ${
+              response.statusText || "Request failed"
+            }`
+          );
+
+          if (response.status === 404) {
+            setRequestError("Product not found.");
+          }
+
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!active) return;
+
+        if (!data || data.id == null) {
+          console.warn("[ShopKart] Product missing from API response.");
+          setRequestError("Product not found.");
+          setHttpStatus(404);
+        }
+      } catch (err) {
+        if (err.name === "AbortError" || !active) return;
+
+        console.error("[ShopKart] Network error:", err);
+        console.error(
+          "[ShopKart] No HTTP status received because the request failed."
+        );
+
+        setRequestError(
+          "Network error. Please check your internet connection and try again."
+        );
+        setHttpStatus(null);
+      } finally {
+        if (active) {
+          const remaining = Math.max(
+            0,
+            1500 - (Date.now() - startedAt)
+          );
+
+          loadingTimer = setTimeout(() => {
+            if (active) setDetailLoading(false);
+          }, remaining);
+        }
+      }
+    }
+
+    checkProductRequest();
+
+    return () => {
+      active = false;
+      controller.abort();
+      clearTimeout(loadingTimer);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (products.length === 0 && !loading && !error) {
       dispatch(fetchProducts());
     }
-  }, [dispatch, products.length]);
+  }, [dispatch, products.length, loading, error]);
 
   const productImages = product
-    ? [...new Set([product.thumbnail, ...(product.images || [])].filter(Boolean))].slice(0, 4)
+    ? [
+        ...new Set(
+          [product.thumbnail, ...(product.images || [])].filter(Boolean)
+        ),
+      ].slice(0, 4)
     : [];
 
   useEffect(() => {
     setSelectedImage(productImages[0] || "");
   }, [product?.id, product?.thumbnail]);
 
-  if (loading && !product) {
+  // Keep the spinner visible for at least 1.5 seconds.
+  if (detailLoading || (loading && !product)) {
     return (
       <div className="details-message">
         <div className="loading-spinner" />
         <p>Loading product details...</p>
+      </div>
+    );
+  }
+
+
+  if (requestError && httpStatus === null) {
+    return (
+      <div className="details-message">
+        <h2>Network Error</h2>
+        <p>{requestError}</p>
+        <button
+          className="details-cart-button"
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </button>
+        <p>
+          <Link to="/" className="details-cart-link">
+            Back to Shopping
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
+  if (httpStatus === 404) {
+    return (
+      <div className="details-message">
+        <h2>Product not found</h2>
+        <Link to="/" className="details-cart-link">
+          Back to Shopping
+        </Link>
       </div>
     );
   }
@@ -133,7 +256,10 @@ export default function ProductDetails() {
                 aria-label={`View product image ${index + 1}`}
                 aria-pressed={selectedImage === image}
               >
-                <img src={image} alt={`${product.title} view ${index + 1}`} />
+                <img
+                  src={image}
+                  alt={`${product.title} view ${index + 1}`}
+                />
               </button>
             ))}
           </div>
@@ -156,7 +282,7 @@ export default function ProductDetails() {
           </div>
 
           <div className="details-price">
-            <strong>${product.price.toFixed(2)}</strong>
+            <strong>${Number(product.price).toFixed(2)}</strong>
 
             {product.discountPercentage > 0 && (
               <span className="product-discount">
