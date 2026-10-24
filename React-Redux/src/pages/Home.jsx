@@ -1,45 +1,55 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link ,useLocation} from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+
 import { fetchProducts } from "../redux/productsSlice";
 import { addToCart } from "../redux/cartSlice";
-import { addToWishlist, removeFromWishlist, } from "../redux/wishlistSlice";
+import {
+  addToWishlist,
+  removeFromWishlist,
+} from "../redux/wishlistSlice";
 
 export default function Home() {
-    const location = useLocation();
-const [orderMessage, setOrderMessage] = useState("");
-
-useEffect(() => {
-  if (location.state?.orderPlaced) {
-    setOrderMessage(
-      `Order placed successfully! Your order ID is ${location.state.orderId}.`
-    );
-
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-}, [location.state]);
+  const location = useLocation();
   const dispatch = useDispatch();
+
+  const [orderMessage, setOrderMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 12;
 
   const { items: products, loading, error } = useSelector(
     (state) => state.products
   );
+
   const wishlistItems = useSelector(
-  (state) => state.wishlist.items
-);
-console.log("ShopKart products:", products);
-console.log("Products count:", products.length);
-console.log("Products loading:", loading);
-console.log("Products error:", error);
+    (state) => state.wishlist.items
+  );
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("default");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    if (products.length === 0) {
+    if (location.state?.orderPlaced) {
+      setOrderMessage(
+        `Order placed successfully! Your order ID is ${location.state.orderId}.`
+      );
+
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+      );
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (products.length === 0 && !loading) {
       dispatch(fetchProducts());
     }
-  }, [dispatch, products.length]);
+  }, [dispatch, products.length, loading]);
 
   const categories = useMemo(
     () => [...new Set(products.map((product) => product.category))],
@@ -64,12 +74,34 @@ console.log("Products error:", error);
       result = [...result].sort((a, b) => b.price - a.price);
     } else if (sort === "rating") {
       result = [...result].sort(
-        (a, b) => b.rating - a.rating
+        (a, b) => (b.rating || 0) - (a.rating || 0)
       );
     }
 
     return result;
   }, [products, search, category, sort]);
+
+
+  const totalPages = Math.ceil(
+    filteredProducts.length / productsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, sort]);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const startIndex = (currentPage - 1) * productsPerPage;
+
+  const paginatedProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + productsPerPage
+  );
 
   const handleAddToCart = (product) => {
     dispatch(addToCart(product));
@@ -77,53 +109,58 @@ console.log("Products error:", error);
     setTimeout(() => setNotice(""), 2500);
   };
 
- 
-const handleWishlist = (product) => {
-  const isWishlisted = wishlistItems.some(
-    (item) => item.id === product.id
-  );
+  const handleWishlist = (product) => {
+    const isWishlisted = wishlistItems.some(
+      (item) => item.id === product.id
+    );
 
-  if (isWishlisted) {
-    dispatch(removeFromWishlist(product.id));
-    setNotice(`${product.title} removed from wishlist`);
-  } else {
-    dispatch(addToWishlist(product));
-    setNotice(`${product.title} added to wishlist`);
-  }
+    if (isWishlisted) {
+      dispatch(removeFromWishlist(product.id));
+      setNotice(`${product.title} removed from wishlist`);
+    } else {
+      dispatch(addToWishlist(product));
+      setNotice(`${product.title} added to wishlist`);
+    }
 
-  setTimeout(() => setNotice(""), 2500);
-};
-
- 
+    setTimeout(() => setNotice(""), 2500);
+  };
 
   return (
     <div className="shop-page">
-        {orderMessage && (
-  <div className="order-success" role="status">
-    <span>✓</span>
+      {orderMessage && (
+        <div className="order-success" role="status">
+          <span>✓</span>
 
-    <div>
-      <strong>Thank you for your order!</strong>
-      <p>{orderMessage}</p>
-    </div>
+          <div>
+            <strong>Thank you for your order!</strong>
+            <p>{orderMessage}</p>
+          </div>
 
-    <button
-      type="button"
-      onClick={() => setOrderMessage("")}
-      aria-label="Dismiss order confirmation"
-    >
-      ×
-    </button>
-  </div>
-)}
+          <button
+            type="button"
+            onClick={() => setOrderMessage("")}
+            aria-label="Dismiss order confirmation"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <section className="hero-section">
         <div className="hero-content">
-          <span className="eyebrow">YOUR EVERYDAY SHOPPING DESTINATION</span>
-          <h1>Find your next <span>favorite thing.</span></h1>
+          <span className="eyebrow">
+            YOUR EVERYDAY SHOPPING DESTINATION
+          </span>
+
+          <h1>
+            Find your next <span>favorite thing.</span>
+          </h1>
+
           <p>
             Discover great products, explore your style, and enjoy
             a simpler way to shop.
           </p>
+
           <a href="#products" className="hero-button">
             Explore Products <span>→</span>
           </a>
@@ -139,7 +176,11 @@ const handleWishlist = (product) => {
         </div>
       </section>
 
-      {notice && <div className="shop-notice">{notice}</div>}
+      {notice && (
+        <div className="shop-notice" role="status">
+          {notice}
+        </div>
+      )}
 
       <section className="products-section" id="products">
         <div className="section-heading">
@@ -170,6 +211,7 @@ const handleWishlist = (product) => {
             aria-label="Filter by category"
           >
             <option value="all">All Categories</option>
+
             {categories.map((item) => (
               <option key={item} value={item}>
                 {item.replace(/-/g, " ")}
@@ -200,6 +242,7 @@ const handleWishlist = (product) => {
           <div className="products-message error-message">
             <h3>Unable to load products</h3>
             <p>{error}</p>
+
             <button
               className="primary-button"
               onClick={() => dispatch(fetchProducts())}
@@ -218,78 +261,156 @@ const handleWishlist = (product) => {
         )}
 
         <div className="product-grid">
-          {filteredProducts.map((product) => (
-            <article className="product-card" key={product.id}>
-              <Link
-                to={`/product/${product.id}`}
-                className="product-image-link"
-                aria-label={`View ${product.title}`}
-              >
-                <div className="product-image">
-                  <img src={product.thumbnail} alt={product.title} loading="lazy" />
-                </div>
-              </Link>
+          {paginatedProducts.map((product) => {
+            const isWishlisted = wishlistItems.some(
+              (item) => item.id === product.id
+            );
 
-              <div className="product-info">
-                <span className="product-category">
-                  {product.category.replace(/-/g, " ")}
-                </span>
-
+            return (
+              <article className="product-card" key={product.id}>
                 <Link
                   to={`/product/${product.id}`}
-                  className="product-title"
+                  className="product-image-link"
+                  aria-label={`View ${product.title}`}
                 >
-                  {product.title}
+                  <div className="product-image">
+                    <img
+                      src={product.thumbnail}
+                      alt={product.title}
+                      loading="lazy"
+                    />
+                  </div>
                 </Link>
 
-                <div className="product-rating">
-                  <span>★</span> {product.rating}
-                </div>
+                <div className="product-info">
+                  <span className="product-category">
+                    {product.category.replace(/-/g, " ")}
+                  </span>
 
-                <div className="product-price-row">
-                  <strong>${product.price.toFixed(2)}</strong>
-                  {product.discountPercentage > 0 && (
-                    <span className="product-discount">
-                      {Math.round(product.discountPercentage)}% off
-                    </span>
-                  )}
-                </div>
-
-                <div className="product-actions">
-                  <button
-                    className="add-cart-button"
-                    onClick={() => handleAddToCart(product)}
+                  <Link
+                    to={`/product/${product.id}`}
+                    className="product-title"
                   >
-                    Add to Cart
-                  </button>
+                    {product.title}
+                  </Link>
 
-                 
-<button
-  className={`wishlist-button ${
-    wishlistItems.some((item) => item.id === product.id)
-      ? "wishlisted"
-      : ""
-  }`}
-  onClick={() => handleWishlist(product)}
-  aria-label={`${
-    wishlistItems.some((item) => item.id === product.id)
-      ? "Remove"
-      : "Add"
-  } ${product.title} ${"from wishlist"}`}
-  title={
-    wishlistItems.some((item) => item.id === product.id)
-      ? "Remove from wishlist"
-      : "Add to wishlist"
-  }
->
-  ♥
-</button>
+                  <div className="product-rating">
+                    <span>★</span> {product.rating ?? "N/A"}
+                  </div>
 
+                  <div className="product-price-row">
+                    <strong>
+                      ${Number(product.price).toFixed(2)}
+                    </strong>
+
+                    {product.discountPercentage > 0 && (
+                      <span className="product-discount">
+                        {Math.round(product.discountPercentage)}% off
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="product-actions">
+                    <button
+                      type="button"
+                      className="add-cart-button"
+                      onClick={() => handleAddToCart(product)}
+                    >
+                      Add to Cart
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`wishlist-button ${
+                        isWishlisted ? "wishlisted" : ""
+                      }`}
+                      onClick={() => handleWishlist(product)}
+                      aria-label={
+                        isWishlisted
+                          ? `Remove ${product.title} from wishlist`
+                          : `Add ${product.title} to wishlist`
+                      }
+                      title={
+                        isWishlisted
+                          ? "Remove from wishlist"
+                          : "Add to wishlist"
+                      }
+                    >
+                      {isWishlisted ? "♥" : "♡"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
+
+        {!loading && !error && totalPages > 1 && (
+          <>
+            <div className="pagination-info">
+              Showing {startIndex + 1}–
+              {Math.min(
+                startIndex + productsPerPage,
+                filteredProducts.length
+              )}{" "}
+              of {filteredProducts.length} products
+            </div>
+
+            <nav className="pagination" aria-label="Product pages">
+              <button
+                type="button"
+                className="pagination-arrow"
+                disabled={currentPage === 1}
+                onClick={() => {
+                  setCurrentPage((page) => page - 1);
+                  document
+                    .getElementById("products")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                ← Previous
+              </button>
+
+              {Array.from(
+                { length: totalPages },
+                (_, index) => index + 1
+              ).map((page) => (
+                <button
+                  type="button"
+                  key={page}
+                  className={
+                    currentPage === page ? "active" : ""
+                  }
+                  aria-current={
+                    currentPage === page ? "page" : undefined
+                  }
+                  onClick={() => {
+                    setCurrentPage(page);
+                    document
+                      .getElementById("products")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="pagination-arrow"
+                disabled={currentPage === totalPages}
+                onClick={() => {
+                  setCurrentPage((page) => page + 1);
+                  document
+                    .getElementById("products")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                Next →
+              </button>
+            </nav>
+          </>
+        )}
       </section>
     </div>
   );

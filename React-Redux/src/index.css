@@ -1923,3 +1923,140 @@ img {
     transform: rotate(360deg);
   }
 }
+
+
+.shopkart-footer {
+  background: var(--surface-color, #1B1F2A);
+  color: var(--text-color, #ffffff);
+  margin-top: 48px;
+  padding: 36px 6% 16px;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-logo {
+  color: var(--text-color, #ffffff);
+  font-size: 26px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer-logo span {
+  color: var(--primary-color, #C2410C);
+}
+
+.footer-brand p,
+.footer-help p {
+  color: var(--muted-text, #b8bdc8);
+  line-height: 1.7;
+  max-width: 340px;
+}
+
+.footer-links,
+.footer-help {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-links h3,
+.footer-help h3 {
+  margin: 0 0 6px;
+}
+
+.footer-links a {
+  color: var(--muted-text, #b8bdc8);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--primary-color, #C2410C);
+}
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 28px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid #454956;
+  text-align: center;
+  color: var(--muted-text, #b8bdc8);
+  font-size: 13px;
+}
+
+@media (max-width: 650px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+
+.pagination-info {
+  margin-top: 28px;
+  text-align: center;
+  color: #5B6170;
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 32px;
+}
+
+.pagination button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid #E4E7EE;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #1B1F2A;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled):not(.active) {
+  border-color: #C2410C;
+  color: #C2410C;
+}
+
+.pagination button.active {
+  background: #C2410C;
+  color: #FFFFFF;
+  border-color: #C2410C;
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination .pagination-arrow {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+@media (max-width: 480px) {
+  .pagination {
+    gap: 5px;
+  }
+
+  .pagination button {
+    min-width: 34px;
+    min-height: 36px;
+    padding: 7px 9px;
+    font-size: 13px;
+  }
+}

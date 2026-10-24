@@ -2,6 +2,8 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Header from "./components/Header";
+import Footer from "./components/Footer";
+
 import Home from "./pages/Home";
 import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
@@ -14,6 +16,10 @@ function AppLayout() {
   const location = useLocation();
 
   const hideHeader =
+    location.pathname === "/login" ||
+    location.pathname === "/register";
+
+  const hideFooter =
     location.pathname === "/login" ||
     location.pathname === "/register";
 
@@ -32,6 +38,8 @@ function AppLayout() {
           <Route path="/checkout" element={<Checkout />} />
         </Routes>
       </main>
+
+      {!hideFooter && <Footer />}
     </>
   );
 }

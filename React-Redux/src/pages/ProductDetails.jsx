@@ -128,7 +128,7 @@ export default function ProductDetails() {
     setSelectedImage(productImages[0] || "");
   }, [product?.id, product?.thumbnail]);
 
-  // Keep the spinner visible for at least 1.5 seconds.
+
   if (detailLoading || (loading && !product)) {
     return (
       <div className="details-message">
